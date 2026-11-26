@@ -1,0 +1,11 @@
+# ignore
+.idea/
+__pycache__/
+**/node_modules/
+
+machine/dist
+machine/node_modules
+machine/sessions
+machine/src/sessions
+
+

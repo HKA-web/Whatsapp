@@ -1,0 +1,9 @@
+{
+  "name": "whatsapp-wrapper",
+  "private": true,
+  "scripts": {
+    "start": "yarn --cwd machine start",
+    "start:nodemon": "yarn --cwd machine dev",
+    "build": "yarn --cwd machine build"
+  }
+}

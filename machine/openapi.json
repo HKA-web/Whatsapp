@@ -1,0 +1,599 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "WhatsApp Microservice API",
+    "version": "2.0.0",
+    "description": "API WhatsApp Microservice dengan multi-session engine Baileys."
+  },
+  "tags": [
+    {
+      "name": "Chatting",
+      "description": "Endpoint pengiriman pesan teks, gambar, dan dokumen"
+    },
+    {
+      "name": "Sessions",
+      "description": "Endpoint manajemen sesi, status, dan QR Code WhatsApp"
+    },
+    {
+      "name": "Presence",
+      "description": "Endpoint status kehadiran dan tanda baca (typing, seen / centang biru)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/sendText": {
+      "post": {
+        "tags": [
+          "Chatting"
+        ],
+        "summary": "Kirim pesan teks",
+        "description": "Mengirim pesan teks ke satu atau beberapa nomor sekaligus. Nomor otomatis dinormalisasi (08xx / 62xx / @g.us).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId",
+                  "text"
+                ],
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "description": "Nama / nomor sesi (opsional jika hanya ada 1 sesi aktif)",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "chatId": {
+                    "type": "string",
+                    "description": "Nomor tujuan (string atau koma pemisah untuk banyak nomor, e.g. 628xxxxxxxxx, 6285678901234)",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "Isi teks pesan",
+                    "example": "Halo, ini pesan konfirmasi dari sistem."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pesan berhasil terkirim",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "3EB0ABC123456789"
+                    },
+                    "to": {
+                      "type": "string",
+                      "example": "628xxxxxxxxx@s.whatsapp.net"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "example": 1716382910
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parameter tidak valid atau sesi belum aktif"
+          },
+          "500": {
+            "description": "Gagal mengirim pesan"
+          }
+        }
+      }
+    },
+    "/api/sendImage": {
+      "post": {
+        "tags": [
+          "Chatting"
+        ],
+        "summary": "Kirim gambar",
+        "description": "Mengirim file gambar melalui URL atau Base64.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId",
+                  "file"
+                ],
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "description": "Nama / nomor sesi",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "chatId": {
+                    "type": "string",
+                    "description": "Nomor tujuan",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "file": {
+                    "type": "object",
+                    "required": [
+                      "url"
+                    ],
+                    "properties": {
+                      "url": {
+                        "type": "string",
+                        "description": "URL gambar (http/https) atau format data:image base64",
+                        "example": "https://images.unsplash.com/photo-1579202673506-ca3ce28943ef"
+                      }
+                    }
+                  },
+                  "caption": {
+                    "type": "string",
+                    "description": "Keterangan gambar (opsional)",
+                    "example": "Foto dokumentasi"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Gambar berhasil dikirim"
+          },
+          "400": {
+            "description": "Parameter tidak valid"
+          },
+          "500": {
+            "description": "Gagal mengirim gambar"
+          }
+        }
+      }
+    },
+    "/api/sendFile": {
+      "post": {
+        "tags": [
+          "Chatting"
+        ],
+        "summary": "Kirim dokumen / file",
+        "description": "Mengirim dokumen (PDF, Docx, Zip, dll) via URL.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId",
+                  "file"
+                ],
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "description": "Nama / nomor sesi",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "chatId": {
+                    "type": "string",
+                    "description": "Nomor tujuan",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "file": {
+                    "type": "object",
+                    "required": [
+                      "url"
+                    ],
+                    "properties": {
+                      "url": {
+                        "type": "string",
+                        "description": "URL dokumen",
+                        "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                      },
+                      "filename": {
+                        "type": "string",
+                        "description": "Nama file yang tampil di WhatsApp",
+                        "example": "Dokumen_Penting.pdf"
+                      },
+                      "mimetype": {
+                        "type": "string",
+                        "description": "MIME type file (opsional)",
+                        "example": "application/pdf"
+                      }
+                    }
+                  },
+                  "caption": {
+                    "type": "string",
+                    "description": "Keterangan dokumen (opsional)",
+                    "example": "Lampiran laporan"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dokumen berhasil dikirim"
+          },
+          "400": {
+            "description": "Parameter tidak valid"
+          },
+          "500": {
+            "description": "Gagal mengirim dokumen"
+          }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Daftar semua sesi WhatsApp",
+        "description": "Mengembalikan daftar seluruh sesi beserta status (STARTING, SCAN_QR_CODE, WORKING, FAILED, STOPPED).",
+        "responses": {
+          "200": {
+            "description": "Daftar sesi berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "example": "628xxxxxxxxx"
+                      },
+                      "status": {
+                        "type": "string",
+                        "example": "WORKING"
+                      },
+                      "me": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "628xxxxxxxxx:1@s.whatsapp.net"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Akun Bisnis"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/start": {
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Mulai / sambungkan sesi WhatsApp",
+        "description": "Menginisialisasi sesi baru atau memuat kembali sesi yang tersimpan di disk.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Nomor atau nama unik sesi",
+                    "example": "628xxxxxxxxx"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inisialisasi sesi berhasil dimulai"
+          },
+          "400": {
+            "description": "Parameter name wajib diisi"
+          }
+        }
+      }
+    },
+    "/api/sessions/stop": {
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Hentikan sesi WhatsApp",
+        "description": "Memutus sambungan soket WhatsApp tanpa menghapus sesi login di disk.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Nomor atau nama unik sesi",
+                    "example": "628xxxxxxxxx"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesi berhasil dihentikan"
+          },
+          "400": {
+            "description": "Parameter name wajib diisi"
+          }
+        }
+      }
+    },
+    "/api/sessions/logout": {
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Logout sesi WhatsApp",
+        "description": "Keluar resmi dari WhatsApp dan menghapus folder kredensial sesi dari disk.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Nomor atau nama unik sesi yang ingin di-logout",
+                    "example": "628xxxxxxxxx"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesi berhasil di-logout"
+          },
+          "400": {
+            "description": "Parameter name wajib diisi"
+          }
+        }
+      }
+    },
+    "/api/{session}/auth/qr": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Ambil QR Code sesi untuk pairing",
+        "description": "Mengembalikan QR code dalam format gambar PNG secara langsung (bisa di-render di browser/img tag) atau format JSON jika parameter format=json.",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "description": "Nomor atau nama sesi",
+            "schema": {
+              "type": "string",
+              "example": "628xxxxxxxxx"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Format keluaran (default: png)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "png",
+                "json"
+              ],
+              "default": "png"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gambar QR Code PNG atau data JSON",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "SCAN_QR_CODE"
+                    },
+                    "qr": {
+                      "type": "string",
+                      "example": "2@vY5..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "QR Code sedang dimuat / belum siap"
+          },
+          "404": {
+            "description": "Sesi belum dibuat"
+          }
+        }
+      }
+    },
+    "/api/sendSeen": {
+      "post": {
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Tandai pesan sebagai sudah dibaca (Centang Biru)",
+        "description": "Mengirimkan status 'seen' / read receipt ke WhatsApp pengirim.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId"
+                ],
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "chatId": {
+                    "type": "string",
+                    "example": "628123456789@s.whatsapp.net"
+                  },
+                  "messageId": {
+                    "type": "string",
+                    "example": "3EB0..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat berhasil ditandai telah dibaca"
+          },
+          "400": {
+            "description": "Parameter tidak valid"
+          }
+        }
+      }
+    },
+    "/api/startTyping": {
+      "post": {
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Aktifkan status 'sedang mengetik...'",
+        "description": "Mengirimkan presence composing ke obrolan lawan bicara.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId"
+                ],
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "chatId": {
+                    "type": "string",
+                    "example": "628123456789@s.whatsapp.net"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status typing aktif"
+          },
+          "400": {
+            "description": "Parameter tidak valid"
+          }
+        }
+      }
+    },
+    "/api/stopTyping": {
+      "post": {
+        "tags": [
+          "Presence"
+        ],
+        "summary": "Hentikan status 'sedang mengetik...'",
+        "description": "Mengirimkan presence paused ke obrolan lawan bicara.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "chatId"
+                ],
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "example": "628xxxxxxxxx"
+                  },
+                  "chatId": {
+                    "type": "string",
+                    "example": "628123456789@s.whatsapp.net"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status typing dihentikan"
+          },
+          "400": {
+            "description": "Parameter tidak valid"
+          }
+        }
+      }
+    }
+  }
+}
