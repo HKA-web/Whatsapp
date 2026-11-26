@@ -1,3 +1,8 @@
+# Warning
+Pastikan sudah clone terlebih dahulu project utama, Kunjungi [Dokumentasi Resmi](https://github.com/HKA-web/Microservice.git) untuk panduan lengkap.
+
+---
+
 ### Setup WhatsApp Machine (Node.js)
 Masuk ke direktori engine WhatsApp dan install paket dependencies:
 ```bash
