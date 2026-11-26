@@ -9,6 +9,7 @@ import {
   stopSessionHandler,
   logoutSessionHandler,
   getQrCodeHandler,
+  resetSignalHandler,
 } from '../controllers/sessions.js';
 
 const router = Router();
@@ -40,6 +41,8 @@ router.post('/sessions', startSessionHandler);
 router.post('/sessions/start', startSessionHandler);
 router.post('/sessions/stop', stopSessionHandler);
 router.post('/sessions/logout', logoutSessionHandler);
+router.post('/sessions/reset-signal', resetSignalHandler);
+router.post('/:session/reset-signal', resetSignalHandler);
 
 // Endpoint QR Code (standar WAHA /api/{session}/auth/qr)
 router.get('/:session/auth/qr', getQrCodeHandler);

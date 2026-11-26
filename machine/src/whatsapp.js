@@ -8,6 +8,9 @@ import {
   proto,
   normalizeMessageContent,
   getContentType,
+  isJidBroadcast,
+  isJidNewsletter,
+  WAMessageStubType,
 } from '@whiskeysockets/baileys';
 import NodeCache from '@cacheable/node-cache';
 import pino from 'pino';
@@ -83,6 +86,7 @@ if (!fs.existsSync(sessionRoot)) {
 
 const messageStore = new SimpleCache(5000);
 const retryCache = new NodeCache({ stdTTL: 300, useClones: false });
+const groupMetadataCache = new NodeCache({ stdTTL: 600, useClones: false });
 const messageKeyStore = new SimpleCache(5000);
 
 // Disk persistence untuk message store agar tidak hilang saat restart
@@ -115,23 +119,37 @@ function saveLidMap() {
 }
 
 let saveTimeout = null;
+function flushDiskStoreSync() {
+  try {
+    const keys = Object.keys(diskStore);
+    if (keys.length > 5000) {
+      for (let i = 0; i < keys.length - 5000; i++) {
+        delete diskStore[keys[i]];
+      }
+    }
+    fs.writeFileSync(messageStoreFile, JSON.stringify(diskStore), 'utf-8');
+  } catch (err) {
+    console.error('[Store] Gagal menyimpan message store ke disk:', err.message);
+  }
+}
+
 function scheduleSaveDiskStore() {
   if (saveTimeout) return;
   saveTimeout = setTimeout(() => {
     saveTimeout = null;
-    try {
-      const keys = Object.keys(diskStore);
-      if (keys.length > 5000) {
-        for (let i = 0; i < keys.length - 5000; i++) {
-          delete diskStore[keys[i]];
-        }
-      }
-      fs.writeFileSync(messageStoreFile, JSON.stringify(diskStore), 'utf-8');
-    } catch (err) {
-      console.error('[Store] Gagal menyimpan message store ke disk:', err.message);
-    }
+    flushDiskStoreSync();
   }, 1000);
 }
+
+process.on('beforeExit', flushDiskStoreSync);
+process.on('SIGINT', () => {
+  flushDiskStoreSync();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  flushDiskStoreSync();
+  process.exit(0);
+});
 
 export function isMatchingId(k, targetId) {
   if (!k || !targetId) return false;
@@ -496,7 +514,7 @@ export async function startSession(sessionId) {
     const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
 
     const sock = makeWASocket({
-      logger: pino({ level: 'debug' }),
+      logger: pino({ level: 'warn' }),
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
       auth: {
@@ -506,6 +524,8 @@ export async function startSession(sessionId) {
       version,
       syncFullHistory: false,
       msgRetryCounterCache: retryCache,
+      shouldIgnoreJid: (jid) => isJidBroadcast(jid) || isJidNewsletter(jid),
+      cachedGroupMetadata: async (jid) => groupMetadataCache.get(jid),
       getMessage: async (key) => {
         const id = key?.id;
         if (!id) return undefined;
@@ -665,10 +685,34 @@ export async function startSession(sessionId) {
       }
     });
 
+    // Sinkronisasi cache metadata grup agar pengiriman/retry grup selalu akurat
+    sock.ev.on('groups.upsert', (groups) => {
+      for (const g of groups || []) {
+        if (g?.id) groupMetadataCache.set(g.id, g);
+      }
+    });
+    sock.ev.on('groups.update', (updates) => {
+      for (const u of updates || []) {
+        if (u?.id) groupMetadataCache.del(u.id);
+      }
+    });
+    sock.ev.on('group-participants.update', ({ id }) => {
+      if (id) groupMetadataCache.del(id);
+    });
+
     // Handler Pesan Masuk (Inbound Message)
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       // Simpan semua pesan ke store untuk keperluan retry handshake & reply quote
       for (const m of (messages || [])) {
+        // Auto-heal jika terjadi CIPHERTEXT ("Waiting for this message")
+        if (m?.messageStubType === WAMessageStubType.CIPHERTEXT) {
+          const failedJid = m.key?.participant || m.key?.remoteJid;
+          console.warn(`⚠️ [CIPHERTEXT / WAITING FOR MESSAGE] Gagal dekripsi dari ${failedJid} (ID: ${m.key?.id}). Auto-reset Signal session...`);
+          if (failedJid) {
+            resetSignalSessions(sessionName, failedJid).catch(() => {});
+          }
+          continue;
+        }
         if (m?.key?.id && m?.message) {
           saveMessageToStore(m.key.id, m.message, m.key);
           const hasMedia = Boolean(
@@ -879,4 +923,91 @@ export async function initSessionsFromDisk() {
 export const connectToWhatsApp = startSession;
 export function getAllSessions() {
   return [...sessions.keys()];
+}
+
+/**
+ * Reset Signal session (session-*.json / sender-key-*.json) tanpa menghapus creds.json (tanpa scan QR ulang).
+ * Mengatasi "Waiting for this message" akibat ratchet Signal out-of-sync pada nomor/grup tertentu.
+ */
+export async function resetSignalSessions(sessionId, targetJid = null) {
+  const sessionName = String(sessionId || '').trim();
+  if (!sessionName) {
+    return { success: false, message: 'Session ID wajib diisi.' };
+  }
+
+  const sessionDir = path.resolve(sessionRoot, sessionName);
+  if (!fs.existsSync(sessionDir)) {
+    return { success: false, message: `Folder sesi '${sessionName}' tidak ditemukan.` };
+  }
+
+  // Kumpulkan semua identitas target (PN dan LID jika ada di lidMap)
+  const targetPrefixes = new Set();
+  if (targetJid) {
+    const normalized = toJid(targetJid);
+    const addJidParts = (j) => {
+      if (!j) return;
+      const base = String(j).split('@')[0].split(':')[0];
+      if (base) targetPrefixes.add(base);
+    };
+    addJidParts(targetJid);
+    addJidParts(normalized);
+    if (lidMap[normalized]) addJidParts(lidMap[normalized]);
+    if (lidMap[targetJid]) addJidParts(lidMap[targetJid]);
+  }
+
+  let deletedFiles = 0;
+  const files = fs.readdirSync(sessionDir);
+  for (const file of files) {
+    // JANGAN pernah hapus creds.json, app-state-sync-*, atau pre-key-*
+    const isSignalSession = file.startsWith('session-') && file.endsWith('.json');
+    const isSenderKey = file.startsWith('sender-key-') && file.endsWith('.json');
+    if (!isSignalSession && !isSenderKey) continue;
+
+    let shouldDelete = false;
+    if (!targetJid) {
+      shouldDelete = true;
+    } else {
+      for (const prefix of targetPrefixes) {
+        if (file.includes(prefix)) {
+          shouldDelete = true;
+          break;
+        }
+      }
+    }
+
+    if (shouldDelete) {
+      try {
+        fs.unlinkSync(path.resolve(sessionDir, file));
+        deletedFiles++;
+      } catch (err) {
+        console.warn(`[Reset-Signal] Gagal menghapus ${file}:`, err.message);
+      }
+    }
+  }
+
+  // Jika sesi aktif, paksa assertSessions (PreKey handshake baru) untuk target JID
+  const session = sessions.get(sessionName);
+  if (session?.sock && session.status === SessionStatus.WORKING && targetJid) {
+    try {
+      const jidsToAssert = [toJid(targetJid)];
+      if (lidMap[jidsToAssert[0]]) jidsToAssert.push(lidMap[jidsToAssert[0]]);
+      await session.sock.assertSessions(jidsToAssert, true);
+    } catch (err) {
+      console.warn(`[Reset-Signal] assertSessions error:`, err?.message);
+    }
+  } else if (session?.sock && !targetJid && !session.isStopped) {
+    // Jika reset semua signal session tanpa targetJid, reconnect ringan tanpa hapus creds.json
+    try {
+      session.sock.end(undefined);
+    } catch (_) {}
+  }
+
+  console.log(`🔧 [Reset-Signal] Sesi '${sessionName}' (target: ${targetJid || 'ALL'}) menghapus ${deletedFiles} file Signal session.`);
+  return {
+    success: true,
+    session: sessionName,
+    target: targetJid || 'ALL',
+    deletedFiles,
+    message: `Berhasil mereset ${deletedFiles} Signal session tanpa perlu scan QR ulang.`,
+  };
 }

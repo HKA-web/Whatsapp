@@ -5,6 +5,7 @@ import {
   logoutSession,
   getSession,
   listSessions,
+  resetSignalSessions,
   SessionStatus,
 } from '../whatsapp.js';
 
@@ -153,5 +154,27 @@ export async function getQrCodeHandler(req, res) {
   } catch (err) {
     console.error('getQrCodeHandler error:', err);
     return res.status(500).json({ error: `Gagal memuat QR Code: ${err.message}` });
+  }
+}
+
+/**
+ * POST /api/sessions/reset-signal atau POST /api/:session/reset-signal
+ * Mereset Signal session yang out-of-sync ("Waiting for this message") tanpa menghapus creds.json (tanpa scan QR ulang).
+ * Body: { session: "6285...", jid: "6281...@s.whatsapp.net" (opsional) }
+ */
+export async function resetSignalHandler(req, res) {
+  try {
+    const sessionName = req.params.session || req.body?.session || req.body?.name || req.query.session;
+    const targetJid = req.body?.jid || req.body?.chatId || req.body?.phone || req.query.jid || null;
+
+    if (!sessionName) {
+      return res.status(400).json({ error: "Field 'session' atau 'name' wajib diisi." });
+    }
+
+    const result = await resetSignalSessions(sessionName, targetJid);
+    return res.status(result.success ? 200 : 404).json(result);
+  } catch (err) {
+    console.error('resetSignalHandler error:', err);
+    return res.status(500).json({ error: `Gagal mereset Signal session: ${err.message}` });
   }
 }
