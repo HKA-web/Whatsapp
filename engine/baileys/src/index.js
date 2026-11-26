@@ -17,7 +17,7 @@ function getSwaggerFilePath() {
   const candidates = [
     path.resolve(__dirname, '../openapi.json'),               // whatsapp/machine/openapi.json (dari src atau dist)
     path.resolve(__dirname, './openapi.json'),
-    path.join(process.cwd(), 'whatsapp/machine/openapi.json'), // jika dijalankan dari root microservice
+    path.join(process.cwd(), 'whatsapp/engine/baileys/openapi.json'), // jika dijalankan dari root microservice
     path.join(process.cwd(), 'openapi.json'),                  // jika dijalankan dari dalam whatsapp/machine
   ];
   for (const p of candidates) {

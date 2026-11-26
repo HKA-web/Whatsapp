@@ -3,7 +3,11 @@
   "info": {
     "title": "WhatsApp Microservice API",
     "version": "2.0.0",
-    "description": "API WhatsApp Microservice dengan multi-session engine Baileys."
+    "description": "API WhatsApp Microservice dengan multi-session engine Baileys.",
+    "x-engines": [
+      "baileys",
+      "whatsmeow"
+    ]
   },
   "tags": [
     {
@@ -103,7 +107,11 @@
           "500": {
             "description": "Gagal mengirim pesan"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sendImage": {
@@ -167,7 +175,11 @@
           "500": {
             "description": "Gagal mengirim gambar"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sendFile": {
@@ -241,7 +253,11 @@
           "500": {
             "description": "Gagal mengirim dokumen"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sessions": {
@@ -288,7 +304,11 @@
               }
             }
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sessions/start": {
@@ -325,7 +345,11 @@
           "400": {
             "description": "Parameter name wajib diisi"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sessions/stop": {
@@ -362,7 +386,11 @@
           "400": {
             "description": "Parameter name wajib diisi"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sessions/logout": {
@@ -399,7 +427,11 @@
           "400": {
             "description": "Parameter name wajib diisi"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/{session}/auth/qr": {
@@ -468,7 +500,11 @@
           "404": {
             "description": "Sesi belum dibuat"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/sendSeen": {
@@ -512,7 +548,11 @@
           "400": {
             "description": "Parameter tidak valid"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/startTyping": {
@@ -552,7 +592,11 @@
           "400": {
             "description": "Parameter tidak valid"
           }
-        }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
       }
     },
     "/api/stopTyping": {
@@ -591,6 +635,60 @@
           },
           "400": {
             "description": "Parameter tidak valid"
+          }
+        },
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ]
+      }
+    },
+    "/api/downloadMedia": {
+      "post": {
+        "summary": "Unduh & dekripsi media (termasuk View Once .rvo)",
+        "tags": [
+          "Chatting"
+        ],
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/reply": {
+      "post": {
+        "summary": "Balas pesan spesifik (quote)",
+        "tags": [
+          "Chatting"
+        ],
+        "x-engine": [
+          "baileys",
+          "whatsmeow"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sessions/reset-signal": {
+      "post": {
+        "summary": "[Baileys Only] Reset Signal session tanpa scan QR ulang",
+        "tags": [
+          "Sessions"
+        ],
+        "x-engine": [
+          "baileys"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }

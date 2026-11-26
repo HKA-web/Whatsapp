@@ -2,8 +2,14 @@
   "name": "whatsapp-wrapper",
   "private": true,
   "scripts": {
-    "start": "yarn --cwd machine start",
-    "start:nodemon": "yarn --cwd machine dev",
-    "build": "yarn --cwd machine build"
+    "start": "yarn --cwd engine/baileys start",
+    "start:nodemon": "yarn --cwd engine/baileys dev",
+    "build": "yarn --cwd engine/baileys build",
+    "start:baileys": "yarn --cwd engine/baileys start",
+    "dev:baileys": "yarn --cwd engine/baileys dev",
+    "build:baileys": "yarn --cwd engine/baileys build",
+    "build:whatsmeow": "..\\bin\\go\\bin\\go.exe -C engine/whatsmeow build -o whatsmeow.exe ./cmd/server",
+    "start:whatsmeow": "engine\\whatsmeow\\whatsmeow.exe",
+    "dev:whatsmeow": "..\\bin\\go\\bin\\go.exe -C engine/whatsmeow run ./cmd/server"
   }
 }

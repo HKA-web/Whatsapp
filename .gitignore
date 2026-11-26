@@ -3,9 +3,9 @@
 __pycache__/
 **/node_modules/
 
-machine/dist
-machine/node_modules
-machine/sessions
-machine/src/sessions
+engine/baileys/dist
+engine/baileys/node_modules
+engine/*/sessions
+engine/whatsmeow/whatsmeow.exe
 
 

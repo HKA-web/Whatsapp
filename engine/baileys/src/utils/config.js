@@ -120,9 +120,9 @@ export function deleteSessionFolder(phoneNumber) {
       path.resolve(__dirname, '../../sessions', phoneNumber),
       path.resolve(__dirname, '../sessions', phoneNumber),
       path.resolve(__dirname, 'sessions', phoneNumber),
-      path.resolve(process.cwd(), 'whatsapp/machine/sessions', phoneNumber),
-      path.resolve(process.cwd(), 'whatsapp/machine/src/sessions', phoneNumber),
-      path.resolve(process.cwd(), 'whatsapp/machine/dist/sessions', phoneNumber),
+      path.resolve(process.cwd(), 'whatsapp/engine/baileys/sessions', phoneNumber),
+      path.resolve(process.cwd(), 'whatsapp/engine/baileys/src/sessions', phoneNumber),
+      path.resolve(process.cwd(), 'whatsapp/engine/baileys/dist/sessions', phoneNumber),
     ];
     for (const sessionDir of candidateDirs) {
       if (fs.existsSync(sessionDir)) {

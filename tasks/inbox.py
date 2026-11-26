@@ -212,25 +212,24 @@ def _handle_rvo_command(inbox: Inbox):
         # cari pesan media terakhir di chat ini yang dikirim ke bot / grup
         if not orig_message or not _has_media_keys(orig_message):
             candidate_senders = {inbox.inbox_by}
-            lid_file = os.path.join(str(djangosettings.BASE_DIR), 'whatsapp', 'machine', 'sessions', 'lid_map.json')
-            # Ambil pemetaan nomor alternatif (LID <-> Phone) jika ada
-            try:
-                if os.path.exists(lid_file):
-                    with open(lid_file, 'r', encoding='utf-8') as lf:
-                        lmap = json.load(lf)
-                        if inbox.inbox_by in lmap:
-                            candidate_senders.add(lmap[inbox.inbox_by])
-            except Exception:
-                pass
-
             participant = context_info.get('participant') if isinstance(context_info, dict) else None
             if participant:
                 candidate_senders.add(participant)
+
+            lid_candidates = [
+                os.path.join(str(djangosettings.BASE_DIR), 'whatsapp', 'engine', 'baileys', 'sessions', 'lid_map.json'),
+                os.path.join(str(djangosettings.BASE_DIR), 'whatsapp', 'engine', 'whatsmeow', 'sessions', 'lid_map.json'),
+                os.path.join(str(djangosettings.BASE_DIR), 'whatsapp', 'engine', 'sessions', 'lid_map.json'),
+            ]
+            # Ambil pemetaan nomor alternatif (LID <-> Phone) jika ada
+            for lid_file in lid_candidates:
                 try:
                     if os.path.exists(lid_file):
                         with open(lid_file, 'r', encoding='utf-8') as lf:
                             lmap = json.load(lf)
-                            if participant in lmap:
+                            if inbox.inbox_by in lmap:
+                                candidate_senders.add(lmap[inbox.inbox_by])
+                            if participant and participant in lmap:
                                 candidate_senders.add(lmap[participant])
                 except Exception:
                     pass
