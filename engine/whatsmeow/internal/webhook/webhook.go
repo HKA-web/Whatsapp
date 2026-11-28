@@ -20,14 +20,29 @@ type Client struct {
 	httpCli *http.Client
 }
 
-func NewClient(webhookHTTP string) *Client {
-	wsURL := strings.Replace(webhookHTTP, "https://", "wss://", 1)
-	wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
-	wsURL = strings.TrimSuffix(wsURL, "/")
-	wsURL = strings.TrimSuffix(wsURL, "/whatsapp/webhook") + "/ws/whatsapp/webhook/"
+func NewClient(webhookRaw string) *Client {
+	raw := strings.TrimSpace(webhookRaw)
+	if raw == "" {
+		raw = "http://127.0.0.1:8008/whatsapp/webhook/"
+	}
+	lower := strings.ToLower(raw)
+	var wsURL, httpURL string
+	if strings.HasPrefix(lower, "ws://") || strings.HasPrefix(lower, "wss://") {
+		wsURL = raw
+		httpURL = strings.Replace(raw, "wss://", "https://", 1)
+		httpURL = strings.Replace(httpURL, "ws://", "http://", 1)
+		httpURL = strings.TrimSuffix(httpURL, "/")
+		httpURL = strings.TrimSuffix(httpURL, "/ws/whatsapp/webhook") + "/whatsapp/webhook/"
+	} else {
+		httpURL = raw
+		wsURL = strings.Replace(raw, "https://", "wss://", 1)
+		wsURL = strings.Replace(wsURL, "http://", "ws://", 1)
+		wsURL = strings.TrimSuffix(wsURL, "/")
+		wsURL = strings.TrimSuffix(wsURL, "/whatsapp/webhook") + "/ws/whatsapp/webhook/"
+	}
 
 	c := &Client{
-		httpURL: webhookHTTP,
+		httpURL: httpURL,
 		wsURL:   wsURL,
 		httpCli: &http.Client{Timeout: 10 * time.Second},
 	}

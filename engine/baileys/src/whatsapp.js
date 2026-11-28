@@ -375,10 +375,14 @@ const sessions = new Map();
 // ==========================================
 // Webhook & Django WebSocket Integration
 // ==========================================
-const webhookHttp = process.env.WEBHOOK_URL || 'http://127.0.0.1:8008/whatsapp/webhook/';
-const wsUrl = webhookHttp
-  .replace(/^http/, 'ws')
-  .replace(/\/whatsapp\/webhook\/?$/, '/ws/whatsapp/webhook/');
+const rawWebhook = (process.env.WEBHOOK_URL || 'http://127.0.0.1:8008/whatsapp/webhook/').trim();
+const isWsInput = /^wss?:\/\//i.test(rawWebhook);
+const wsUrl = isWsInput
+  ? rawWebhook
+  : rawWebhook.replace(/^http/i, 'ws').replace(/\/whatsapp\/webhook\/?$/i, '/ws/whatsapp/webhook/');
+const webhookHttp = isWsInput
+  ? rawWebhook.replace(/^ws/i, 'http').replace(/\/ws\/whatsapp\/webhook\/?$/i, '/whatsapp/webhook/')
+  : rawWebhook;
 
 let djangoWs = null;
 let wsReconnectTimer = null;

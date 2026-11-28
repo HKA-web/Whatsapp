@@ -56,7 +56,9 @@ class Command(BaseCommand):
                 f'''--webhook.url={settings.WEBHOOK_URL}''',
             ]
             from urllib.parse import urlparse, quote_plus
-            parameter.append(f'''--catalogI18n={'{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(settings.WEBHOOK_URL))}i18n.json''')
+            uri = urlparse(settings.WEBHOOK_URL)
+            http_scheme = 'https' if uri.scheme == 'wss' else ('http' if uri.scheme in ('ws', '') else uri.scheme)
+            parameter.append(f'''--catalogI18n={http_scheme}://{uri.netloc}/i18n.json''')
 
             if settings.CONFIG:
                 if isinstance(settings.CONFIG, dict):

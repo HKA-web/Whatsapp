@@ -1,29 +1,29 @@
-# Warning
-Pastikan sudah clone terlebih dahulu project utama, Kunjungi [Dokumentasi Resmi](https://github.com/HKA-web/Microservice.git) untuk panduan lengkap.
+### Setup WhatsApp Engine (`baileys` & `whatsmeow`)
 
----
-
-### Setup WhatsApp Machine (Node.js)
-Masuk ke direktori engine WhatsApp dan install paket dependencies:
+#### A. Engine Baileys (Node.js - Default)
+Masuk ke direktori engine Baileys dan install paket dependencies:
 ```bash
-cd whatsapp/machine
+cd whatsapp/engine/baileys
 npm install
 npm run build
-cd ../..
+cd ../../..
+```
+
+#### B. Engine Whatsmeow (Go - Alternatif)
+Pastikan Go portable tersedia di `bin/go/` (atau terpasang di PATH), lalu kompilasi binary:
+```bash
+cd whatsapp/engine/whatsmeow
+../../../bin/go/bin/go.exe build -o whatsmeow.exe ./cmd/server
+cd ../../..
 ```
 
 ---
 
 ## Cara Menjalankan Layanan
 
-Jalankan **3 layanan berikut pada terminal terpisah**:
+Jalankan **layanan berikut pada terminal terpisah**:
 
-### 1. Jalankan Django Server (Port 8008)
-```bash
-python manage.py runserver 8008
-```
-
-### 2. Jalankan Worker Antrean Huey (Inbox & Outbox)
+### 1. Jalankan Worker Antrean Huey (Inbox & Outbox)
 ```bash
 python manage.py runhuey --queue whatsapp
 ```
@@ -33,9 +33,13 @@ python manage.py runhuey --queue whatsapp
 > 1. **Antrean & Rate Limiting:** Mengantre pesan masuk (`Inbox`) dan keluar (`Outbox`) agar server tidak overload saat ratusan chat masuk serentak, serta melindungi nomor WhatsApp dari risiko pemblokiran (*banned/spam*) akibat pengiriman pesan terlalu cepat.
 > 2. **Cronjob Otomatis:** Menjalankan pengecekan otomatis setiap 1 menit (`@huey.db_periodic_task`) untuk pesan broadcast terjadwal (`scheduled = True`) dan pengiriman ulang pesan gagal (*retry*).
 
-### 3. Jalankan WhatsApp Engine (Port 3002)
+### 2. Jalankan WhatsApp Engine
 ```bash
+# Menjalankan Baileys (Default)
 python manage.py runwhatsapp
+
+# Atau menjalankan Whatsmeow
+python manage.py runwhatsapp --engine=whatsmeow
 ```
 
 ---
@@ -295,8 +299,6 @@ CREATE INDEX IF NOT EXISTS "command_active_command_id_0e498e55" ON "whatsapp"."c
 CREATE INDEX IF NOT EXISTS "command_active_previous_command_id_a76d6402" ON "whatsapp"."command_active" ("previous_command_id");
 CREATE INDEX IF NOT EXISTS "template_session_id_f41b1804" ON "whatsapp"."template" ("session_id");
 ```
-
----
 
 ## Dummy Data SQL (Data Contoh)
 
